@@ -32,6 +32,8 @@ It will take a very long time for the full eMMC to be dumped. Occasionally it wi
 
 The eMMC is a GPT disk so you can mount the image or extract it (7-Zip can open it) to extract the individual partitions inside the image.
 
+Modify the dumper.sh script to set `block_offset` to the block offset of the partition you want to write your data at. For example, set `block_offset=0x44C000` if you wish to dump the recovery partition.
+
 ## Writing to eMMC
 
 The tools used to dump the eMMC to the host PC can be found in the [uploader](tools/uploader) folder.
@@ -41,6 +43,8 @@ The chunk_file.py script is to be used to split a large file into the required c
 Similar to dumping, writing also occasionally breaks. You will notice when it breaks if it hangs abnormally long when writing a certain file. You must reboot the PCB and restart the script if that happens.
 
 The writer tool has a few options that can be controlled using the `#define`s in the program. `VERIFIED_WRITES` will read the existing data at the specified block and skip it if it matches the data that is to be written, and will also verify that the data written to the eMMC can be read back and matches what was to be written to the eMMC. This flag is slower but it's useful if you want to be sure the data is writing correctly. The other flag available is `EXTENDED_BUFFER` which uses a combination of the internal buffer + SRAM to hold twice as much data to be written.
+
+Modify the uploader.sh script to set `fileoffsetbase` to the block offset of the partition you want to write your data at. For example, set `fileoffsetbase=0x44C000` if you wish to overwrite the recovery partition.
 
 ## Updates
 You will possibly need to build your own copy of swupdate to handle updates. The Ubuntu version of swupdate, for example, is not built to signed updates using the private/public key method. Follow the build instructions in the swupdate README. You must enable verification of signed images using RSA PKCS#1.5 in your build.
