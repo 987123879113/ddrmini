@@ -1,4 +1,4 @@
-# DDR mini classic hacking guide
+# DDR Classic Mini Hacking Guide
 
 **WARNING**: This CAN brick your device if you're unlucky or not careful. Modify at your own risk.
 
