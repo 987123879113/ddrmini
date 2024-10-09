@@ -1,6 +1,6 @@
 # DDR mini classic hacking guide
 
-**Warning**: This CAN brick your device if you're unlucky or not careful. Modify at your own risk.
+**WARNING**: This CAN brick your device if you're unlucky or not careful. Modify at your own risk.
 
 What this guide covers: how to dump and write to the eMMC connected to an Allwinner A527 chip, how to make custom updates that work with the existing update system, and how to modify the system to use a USB drive to play game data instead of writing changes to the eMMC.
 
@@ -35,6 +35,8 @@ The eMMC is a GPT disk so you can mount the image or extract it (7-Zip can open 
 ## Writing to eMMC
 
 The tools used to dump the eMMC to the host PC can be found in the [uploader](uploader) folder.
+
+The chunk_file.py script is to be used to split a large file into the required chunk size for the uploader script. `python3 chunk_file.py input_file.bin parts 0x8000` will dump 0x8000 chunks into a folder named `parts`.
 
 Similar to dumping, writing also occasionally breaks. You will notice when it breaks if it hangs abnormally long when writing a certain file. You must reboot the PCB and restart the script if that happens.
 
@@ -74,7 +76,7 @@ So far only `core` has been seen in official updates. The `core` update method w
 Never use this update type unless you have no other options somehow. Using a recovery update will write the `recovery` flag to the `misc` partition. The machine won't be able to boot properly until you write the `user` flag back into the `misc` partition.
 
 ### `core` update type
-```json
+```
 software =
 {
     version = "1.0.1";
@@ -96,7 +98,7 @@ software =
 ```
 
 ### `diff` update type
-```json
+```
 software =
 {
     version = "1.0.2";
