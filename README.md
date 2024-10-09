@@ -24,7 +24,7 @@ It's possible to get the SD card to work but it requires SMD soldering skills. I
 FEL mode is required to run any of the `sunxi-fel` commands that give us the ability to read/write memory and run programs on the A527 CPU. To enable FEL mode you must disassmble your unit to access the PCB. There will be a small button behind one of the USB ports. Switch the power switch to the OFF position (required step) then hold the button while inserting the USB-C power cable. If done successfully you should be able to run `sunxi-fel version` to get information about the connected CPU.
 
 ### Dumping eMMC
-The tools used to dump the eMMC to the host PC can be found in the [dumper](dumper) folder.
+The tools used to dump the eMMC to the host PC can be found in the [dumper](tools/dumper) folder.
 
 For building I just swapped out the code in `board/avaota-a1/smhc2_test/main.c` of SyterKit.
 
@@ -34,7 +34,7 @@ The eMMC is a GPT disk so you can mount the image or extract it (7-Zip can open 
 
 ## Writing to eMMC
 
-The tools used to dump the eMMC to the host PC can be found in the [uploader](uploader) folder.
+The tools used to dump the eMMC to the host PC can be found in the [uploader](tools/uploader) folder.
 
 The chunk_file.py script is to be used to split a large file into the required chunk size for the uploader script. `python3 chunk_file.py input_file.bin parts 0x8000` will dump 0x8000 chunks into a folder named `parts`.
 
