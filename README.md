@@ -47,7 +47,7 @@ The writer tool has a few options that can be controlled using the `#define`s in
 Modify the uploader.sh script to set `fileoffsetbase` to the block offset of the partition you want to write your data at. For example, set `fileoffsetbase=0x44C000` if you wish to overwrite the recovery partition.
 
 ## Updates
-You will possibly need to build your own copy of swupdate to handle updates. The Ubuntu version of swupdate, for example, is not built to signed updates using the private/public key method. Follow the build instructions in the swupdate README. You must enable verification of signed images using RSA PKCS#1.5 in your build.
+You will possibly need to build your own copy of swupdate to handle updates. The build of swupdate in the Ubuntu repositories, for example, is not built to handle signed updates using the RSA private/public key method. Follow the build instructions in the swupdate README. You must enable verification of signed images using RSA PKCS#1.5 in your build.
 
 ## Extracting updates
 This device uses swupdate to handle updates. You can extract updates using the following command:
