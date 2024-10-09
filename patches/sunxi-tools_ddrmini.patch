@@ -1,0 +1,12 @@
+diff --git a/soc_info.c b/soc_info.c
+index 264d5bc..3c36511 100644
+--- a/soc_info.c
++++ b/soc_info.c
+@@ -618,6 +618,7 @@ soc_info_t soc_info_table[] = {
+ 		.sid_sections = generic_2k_sid_maps,
+ 		.rvbar_reg    = 0x08000040,
+ 		.watchdog     = &wd_a523_compat,
++		.icache_fix   = true,
+ 	},{
+ 		.swap_buffers = NULL /* End of the table */
+ 	}

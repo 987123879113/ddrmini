@@ -1,0 +1,32 @@
+DRIVE_MOUNT_PATH="/var/run/media/game"
+
+if [ ! -d "$DRIVE_MOUNT_PATH" ]; then
+    mkdir -p $DRIVE_MOUNT_PATH
+
+    DRIVE_DEVICES=$(ls /dev/sd[a-z][0-9] 2>/dev/null)
+    for device in $DRIVE_DEVICES; do
+        mount -o exec,umask=000 $device $DRIVE_MOUNT_PATH
+
+        if [ -f "$DRIVE_MOUNT_PATH/DDRmenu" ]; then
+            # Found USB with game data
+            break
+        fi
+
+        umount $DRIVE_MOUNT_PATH
+    done
+fi
+
+# Execute menu
+if [ -f "$DRIVE_MOUNT_PATH/DDRmenu" ]; then
+    APP_PROC=/var/run/media/game/DDRmenu
+    APP_HOME=/var/run/media/game
+
+    chmod +x $APP_PROC
+else
+    APP_PROC=/opt/ddrmini/DDRmenu
+    APP_HOME=/opt/ddrmini
+fi
+
+APP_NAME="usbloader"
+APP_REBOOT="enable"
+POWER_SWITCH_GPIO="gpio-384"

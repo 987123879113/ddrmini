@@ -1,0 +1,348 @@
+diff --git a/board/avaota-a1/board.c b/board/avaota-a1/board.c
+index d7f8d5ea..fb8ec8b3 100644
+--- a/board/avaota-a1/board.c
++++ b/board/avaota-a1/board.c
+@@ -81,7 +81,7 @@ sunxi_sdhci_t sdhci2 = {
+         .clk_base = CCU_BASE + CCU_SMHC2_CLK_REG,
+         .sdhci_mmc_type = MMC_TYPE_EMMC,
+         .max_clk = 25000000,
+-        .width = SMHC_WIDTH_8BIT,
++        .width = SMHC_WIDTH_4BIT,
+         .dma_des_addr = SDRAM_BASE + 0x30080000,
+         .pinctrl = {
+                 .gpio_clk = {GPIO_PIN(GPIO_PORTC, 5), GPIO_PERIPH_MUX3},
+@@ -155,17 +155,7 @@ const char *dram_para_name[2] = {
+ };
+ 
+ void neon_enable(void) {
+-    /* set NSACR, both Secure and Non-secure access are allowed to NEON */
+-    asm volatile("MRC p15, 0, r0, c1, c1, 2");
+-    asm volatile("ORR r0, r0, #(0x3<<10) @ enable fpu/neon");
+-    asm volatile("MCR p15, 0, r0, c1, c1, 2");
+-    /* Set the CPACR for access to CP10 and CP11*/
+-    asm volatile("LDR r0, =0xF00000");
+-    asm volatile("MCR p15, 0, r0, c1, c0, 2");
+-    /* Set the FPEXC EN bit to enable the FPU */
+-    asm volatile("MOV r3, #0x40000000");
+-    /*@VMSR FPEXC, r3*/
+-    asm volatile("MCR p10, 7, r3, c8, c0, 0");
++    return;
+ }
+ 
+ void gicr_set_waker(void) {
+diff --git a/board/avaota-a1/start.S b/board/avaota-a1/start.S
+index 32d17858..b0007224 100644
+--- a/board/avaota-a1/start.S
++++ b/board/avaota-a1/start.S
+@@ -87,84 +87,18 @@ _fiq:
+ 	.word fiq
+ 
+ reset:
+-	/* Enter svc mode cleanly and mask interrupts */
+-	mrs r0, cpsr
+-	bic r0, r0, #ARMV7_MODE_MASK
+-	orr r0, r0, #ARMV7_SVC_MODE
+-	orr r0, r0, #(ARMV7_IRQ_MASK | ARMV7_FIQ_MASK)
+-	bic r0, r0, #(1<<9)     @set little-endian
+-	msr cpsr_c, r0
+-
+-	/* Set vector base address register */
+-	ldr r0, =_vector
+-	mcr p15, 0, r0, c12, c0, 0
+-	mrc p15, 0, r0, c1, c0, 0
+-	bic r0, #(1 << 13)
+-	mcr p15, 0, r0, c1, c0, 0
+-
+-	mrc p15, 0, r0, c1, c0, 0
+-	bic r0, r0, #0x00002000     @ clear bits 13 (--V-)
+-	bic r0, r0, #0x00000007     @ clear bits 2:0 (-CAM)
+-	orr r0, r0, #0x00000800     @ set bit 11 (Z---) BTB
+-	bic r0, r0, #0x00001000     @ clear bit 12 (I) I-cache
+-	mcr p15, 0, r0, c1, c0, 0
+-
+-	/* Set stack pointer */
+-	/* Initialize UND stacks */
+-	mrs r0, cpsr
+-	bic r0, r0, #ARMV7_MODE_MASK
+-	orr r1, r0, #ARMV7_UND_MODE
+-	msr cpsr_cxsf, r1
+-	ldr sp, _stack_und_end
+-
+-	/* Initialize ABT stacks */
+-	mrs r0, cpsr
+-	bic r0, r0, #ARMV7_MODE_MASK
+-	orr r1, r0, #ARMV7_ABT_MODE
+-	msr cpsr_cxsf, r1
+-	ldr sp, _stack_abt_end
+-
+-	/* Initialize IRQ stacks */
+-	mrs r0, cpsr
+-	bic r0, r0, #ARMV7_MODE_MASK
+-	orr r1, r0, #ARMV7_IRQ_MODE
+-	msr cpsr_cxsf, r1
+-	ldr sp, _stack_irq_end
+-
+-	/* Initialize FIQ stacks */
+-	mrs r0, cpsr
+-	bic r0, r0, #ARMV7_MODE_MASK
+-	orr r1, r0, #ARMV7_FIQ_MODE
+-	msr cpsr_cxsf, r1
+-	ldr sp, _stack_fiq_end
+-
+-	/* Initialize SVC stacks */
+-	mrs r0, cpsr
+-	bic r0, r0, #ARMV7_MODE_MASK
+-	orr r1, r0, #ARMV7_SVC_MODE
+-	msr cpsr_cxsf, r1
+-	ldr sp, _stack_srv_end
++	push { lr }
+ 
+ 	bl  clear_bss
+ 
+-	/*
+-	* disable interrupts (FIQ and IRQ), also set the cpu to SVC32 mode,
+-	* except if in HYP mode already
+-	*/
+-	mrs     r0, cpsr
+-	and     r1, r0, #ARMV7_MODE_MASK           @ mask mode bits
+-	teq     r1, #0x1a               @ test for HYP mode
+-	bicne   r0, r0, #ARMV7_MODE_MASK           @ clear all mode bits
+-	orrne   r0, r0, #ARMV7_SVC_MODE           @ set SVC mode
+-	orr     r0, r0, #0xc0           @ disable FIQ and IRQ
+-	msr     cpsr,r0
+-	
+ 	bl set_timer_count
+ 
+ 	bl neon_enable
+ 
+ 	bl main
+ 
++	pop { pc }
++
+ clear_bss:
+ 	ldr     r0, =_sbss
+ 	ldr     r1, =_ebss
+diff --git a/cmake/board/avaota-a1.cmake b/cmake/board/avaota-a1.cmake
+index aed12ec8..c9dce7f6 100644
+--- a/cmake/board/avaota-a1.cmake
++++ b/cmake/board/avaota-a1.cmake
+@@ -31,7 +31,7 @@ set(CROSS_COMPILE ${CROSS_COMPILE} CACHE STRING "CROSS_COMPILE Toolchain")
+ set(CMAKE_C_COMPILER "${CROSS_COMPILE}gcc")
+ set(CMAKE_CXX_COMPILER "${CROSS_COMPILE}g++")
+ 
+-set(CMAKE_COMMON_FLAGS "-nostdlib -nostdinc -Os -march=armv8.2-a -mthumb-interwork -fno-common -ffunction-sections -fno-builtin -fno-stack-protector -ffreestanding -mthumb -mfpu=neon -mfloat-abi=softfp -pipe")
++set(CMAKE_COMMON_FLAGS "-nostdlib -nostdinc -Os -march=armv8.2-a -mthumb-interwork -fno-common -ffunction-sections -fno-builtin -fno-stack-protector -ffreestanding -mthumb -mfloat-abi=softfp -pipe")
+ 
+ # Disable specific warning flags for C and C++ compilers
+ set(CMAKE_C_DISABLE_WARN_FLAGS "-Wno-int-to-pointer-cast -Wno-implicit-function-declaration -Wno-discarded-qualifiers")
+diff --git a/include/drivers/mmc/sys-mmc.h b/include/drivers/mmc/sys-mmc.h
+index 5f86b198..1237718a 100644
+--- a/include/drivers/mmc/sys-mmc.h
++++ b/include/drivers/mmc/sys-mmc.h
+@@ -377,6 +377,10 @@ typedef struct mmc {
+  */
+ int sunxi_mmc_init(void *sdhci_hdl);
+ 
++int sunxi_mmc_flush(void *sdhci_hdl);
++
++int sunxi_mmc_erase(void *sdhci_hdl, uint32_t block, uint32_t count);
++
+ /**
+  * @brief Read blocks from the Sunxi MMC block device
+  *
+diff --git a/include/drivers/mmc/sys-sdcard.h b/include/drivers/mmc/sys-sdcard.h
+index ea5f8ce9..c94d0249 100644
+--- a/include/drivers/mmc/sys-sdcard.h
++++ b/include/drivers/mmc/sys-sdcard.h
+@@ -43,6 +43,10 @@ extern sdmmc_pdata_t card2;
+  */
+ int sdmmc_init(sdmmc_pdata_t *data, sunxi_sdhci_t *hci);
+ 
++int sdmmc_flush(sdmmc_pdata_t *data, sunxi_sdhci_t *hci);
++
++int sdmmc_erase(sdmmc_pdata_t *data, sunxi_sdhci_t *hci, uint32_t block, uint32_t count);
++
+ /**
+  * @brief Read blocks from the SD/MMC device
+  *
+diff --git a/include/drivers/mmc/sys-sdhci.h b/include/drivers/mmc/sys-sdhci.h
+index c45c8ef5..f0ecb0a1 100644
+--- a/include/drivers/mmc/sys-sdhci.h
++++ b/include/drivers/mmc/sys-sdhci.h
+@@ -131,6 +131,8 @@ typedef struct sunxi_sdhci {
+  */
+ int sunxi_sdhci_init(sunxi_sdhci_t *sdhci);
+ 
++int sunxi_sdhci_close(sunxi_sdhci_t *sdhci);
++
+ /**
+  * @brief Initialize the core functionality of the SDHC controller.
+  *
+diff --git a/include/log.h b/include/log.h
+index af997baa..7f29a7af 100644
+--- a/include/log.h
++++ b/include/log.h
+@@ -32,7 +32,7 @@ extern "C" {
+ #elif defined TRACE_MODE
+ #define LOG_LEVEL_DEFAULT LOG_LEVEL_TRACE
+ #else
+-#define LOG_LEVEL_DEFAULT LOG_LEVEL_INFO
++#define LOG_LEVEL_DEFAULT LOG_LEVEL_MUTE
+ #endif// DEBUG_MODE
+ 
+ #endif// LOG_LEVEL_DEFAULT
+diff --git a/src/drivers/mmc/sys-mmc.c b/src/drivers/mmc/sys-mmc.c
+index 46184c90..a45d9a0b 100644
+--- a/src/drivers/mmc/sys-mmc.c
++++ b/src/drivers/mmc/sys-mmc.c
+@@ -311,7 +311,7 @@ static uint32_t sunxi_mmc_write_blocks(sunxi_sdhci_t *sdhci, void *dst, uint32_t
+     mmc_cmd_t cmd = {0};
+     mmc_data_t data = {0};
+ 
+-    int timeout = 1000;
++    int timeout = 10000;
+ 
+     if (blkcnt > 1UL)
+         cmd.cmdidx = MMC_CMD_WRITE_MULTIPLE_BLOCK;
+@@ -326,6 +326,7 @@ static uint32_t sunxi_mmc_write_blocks(sunxi_sdhci_t *sdhci, void *dst, uint32_t
+     cmd.resp_type = MMC_RSP_R1;
+     cmd.flags = 0;
+ 
++    data.b.src = dst;
+     data.b.dest = dst;
+     data.blocks = blkcnt;
+     data.blocksize = mmc->write_bl_len;
+@@ -1823,6 +1824,72 @@ int sunxi_mmc_init(void *sdhci_hdl) {
+     return err;
+ }
+ 
++int sunxi_mmc_flush(void *sdhci_hdl) {
++    sunxi_sdhci_t *sdhci = (sunxi_sdhci_t *) sdhci_hdl;
++    sunxi_mmc_switch(sdhci, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_FLUSH_CACHE, 1);
++    // sunxi_mmc_switch(sdhci, EXT_CSD_CMD_SET_NORMAL, EXT_CSD_SANITIZE_START, 1);
++    return 0;
++}
++
++int sunxi_mmc_erase(void *sdhci_hdl, uint32_t block, uint32_t count) {
++    sunxi_sdhci_t *sdhci = (sunxi_sdhci_t *) sdhci_hdl;
++
++    int err = 0;
++
++    mmc_cmd_t cmd;
++
++    cmd.cmdidx = MMC_CMD_ERASE_GROUP_START;
++    cmd.resp_type = MMC_RSP_R1;
++    cmd.cmdarg = block;
++    cmd.flags = 0;
++
++    err = sunxi_sdhci_xfer(sdhci, &cmd, NULL);
++	if (err)
++		goto err_out;
++
++    cmd.cmdidx = MMC_CMD_ERASE_GROUP_END;
++	cmd.cmdarg = block + (count > 0 ? (count - 1) : 0);
++
++	err = sunxi_sdhci_xfer(sdhci, &cmd, NULL);
++	if (err)
++		goto err_out;
++
++    cmd.cmdidx = MMC_CMD_ERASE;
++	cmd.cmdarg = SECURE_ERASE | 1;
++	cmd.resp_type = MMC_RSP_R1b;
++	err = sunxi_sdhci_xfer(sdhci, &cmd, NULL);
++	if (err)
++		goto err_out;
++
++
++
++    cmd.cmdidx = MMC_CMD_ERASE_GROUP_START;
++    cmd.resp_type = MMC_RSP_R1;
++    cmd.cmdarg = block;
++    cmd.flags = 0;
++
++    err = sunxi_sdhci_xfer(sdhci, &cmd, NULL);
++	if (err)
++		goto err_out;
++
++    cmd.cmdidx = MMC_CMD_ERASE_GROUP_END;
++	cmd.cmdarg = block + (count > 0 ? (count - 1) : 0);
++
++	err = sunxi_sdhci_xfer(sdhci, &cmd, NULL);
++	if (err)
++		goto err_out;
++
++    cmd.cmdidx = MMC_CMD_ERASE;
++	cmd.cmdarg = SECURE_ERASE;
++	cmd.resp_type = MMC_RSP_R1b;
++	err = sunxi_sdhci_xfer(sdhci, &cmd, NULL);
++	if (err)
++		goto err_out;
++
++err_out:
++    return err;
++}
++
+ /**
+  * @brief Read blocks from the Sunxi MMC block device
+  *
+diff --git a/src/drivers/mmc/sys-sdcard.c b/src/drivers/mmc/sys-sdcard.c
+index bcf3a7d4..d1dfa8d8 100644
+--- a/src/drivers/mmc/sys-sdcard.c
++++ b/src/drivers/mmc/sys-sdcard.c
+@@ -44,6 +44,18 @@ int sdmmc_init(sdmmc_pdata_t *data, sunxi_sdhci_t *hci) {
+     return -1;
+ }
+ 
++int sdmmc_flush(sdmmc_pdata_t *data, sunxi_sdhci_t *hci) {
++    if (sunxi_mmc_flush(data->hci) == 0) {
++        return 0;
++    }
++
++    return -1;
++}
++
++int sdmmc_erase(sdmmc_pdata_t *data, sunxi_sdhci_t *hci, uint32_t block, uint32_t count) {
++    return sunxi_mmc_erase(data->hci, block, count);
++}
++
+ /**
+  * @brief Read blocks from the SD/MMC device
+  *
+diff --git a/src/drivers/mmc/sys-sdhci.c b/src/drivers/mmc/sys-sdhci.c
+index fdf1246f..2dbb9d27 100644
+--- a/src/drivers/mmc/sys-sdhci.c
++++ b/src/drivers/mmc/sys-sdhci.c
+@@ -749,6 +749,13 @@ static int sunxi_sunxi_sdhci_trans_data_cpu(sunxi_sdhci_t *sdhci, mmc_data_t *da
+         }
+     } else {
+         buff = (uint32_t *) data->b.src;// Source buffer for write operation
++        for (size_t i = 0; i < ((data->blocksize * data->blocks) >> 2); i++) {
++            while (mmc_host->reg->status & SMHC_STATUS_FIFO_FULL) {}
++            if (time_us() > timeout)
++                break;
++            mmc_host->reg->fifo = buff[i];
++            timeout = time_us() + SMHC_TIMEOUT;// Update timeout for next iteration
++        }
+     }
+ 
+     return 0;// Return success indication
+@@ -1076,12 +1083,13 @@ int sunxi_sdhci_xfer(sunxi_sdhci_t *sdhci, mmc_cmd_t *cmd, mmc_data_t *data) {
+     if (data) {
+         printk_trace("SMHC: transfer data %lu bytes by %s\n", data->blocksize * data->blocks,
+                      ((data->blocksize * data->blocks > 512) ? "DMA" : "CPU"));
+-        if (data->blocksize * data->blocks > 512) {
+-            use_dma_status = true;
+-            mmc_host->reg->gctrl &= ~SMHC_GCTRL_ACCESS_BY_AHB;
+-            ret = sunxi_sunxi_sdhci_trans_data_dma(sdhci, data);
+-            mmc_host->reg->cmd = (cmdval | cmd->cmdidx);
+-        } else {
++        // if (data->blocksize * data->blocks > 512) {
++        //     use_dma_status = true;
++        //     mmc_host->reg->gctrl &= ~SMHC_GCTRL_ACCESS_BY_AHB;
++        //     ret = sunxi_sunxi_sdhci_trans_data_dma(sdhci, data);
++        //     mmc_host->reg->cmd = (cmdval | cmd->cmdidx);
++        // } else
++        {
+             mmc_host->reg->gctrl |= SMHC_GCTRL_ACCESS_BY_AHB;
+             mmc_host->reg->cmd = (cmdval | cmd->cmdidx);
+             ret = sunxi_sunxi_sdhci_trans_data_cpu(sdhci, data);

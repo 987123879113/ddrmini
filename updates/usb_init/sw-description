@@ -1,0 +1,19 @@
+software =
+{
+    version = "1.0.2";
+    description = "Use USB loader script";
+
+    stable = {
+        upgrade_kernel = {
+            files: (
+                {
+                    filename = "ddrmini-gui-app-env";
+                    path = "/etc/appinitscript/env.d/ddrmini-gui-app-env";
+                    device = "/dev/mmcblk0p4";
+                    filesystem = "ext4";
+                    sha256 = "6850cf33e1ce411825e568b007812b9abeb7dc95d02fb8efd6cd0bc7ee606ada";
+                }
+            );
+        };
+    };
+ }
