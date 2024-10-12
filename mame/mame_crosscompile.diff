@@ -1,0 +1,73 @@
+diff --git a/functions/compile b/functions/compile
+index 08d0d7e..49c3a00 100644
+--- a/functions/compile
++++ b/functions/compile
+@@ -26,12 +26,17 @@ then
+   git clean -dfx
+   make clean
+   git reset --hard HEAD
+-  git checkout master
++  if [ "${MAMEFORK}" == "bemani" ]
++  then
++    git checkout bemani
++  else
++    git checkout master
++  fi
+   git pull --recurse-submodules=yes
+ else
+   echo "No ${MAMEFORK} source found, cloning from GitHub..."
+   cd "${DIR_BUILD}/src" || exit 1
+-  git clone --recursive "${GIT}" "${MAMEFORK}"
++  git clone --depth=1 --recursive "${GIT}" "${MAMEFORK}"
+ fi
+ 
+ ## Check out the correct tag
+@@ -40,12 +45,12 @@ fi
+ 
+ cd "${DIR_BUILD}/src/${MAMEFORK}" || exit 1
+ # MAME
+-if [ "${MAMEFORK}" == "mame" ]
++if [ "${MAMEFORK}" == "mame" ] || [ "${MAMEFORK}" == "bemani" ]
+ then
+   if [ "${MAMEVER}" == "latest" ]
+   then
+     MAMETAG=$(git tag | grep ^mame | tail -n1)
+-    MAMENUM=0.$( echo ${MAMETAG} | awk -F '0' '{print $2}')
++    MAMENUM=0.$( echo ${MAMETAG:5} )
+   else
+     MAMESUFF=$(echo ${MAMEVER} | tr -d '.')
+     MAMETAG=mame${MAMESUFF}
+@@ -110,10 +115,20 @@ fi
+ 
+ make clean
+ 
++TOOLS_BUILD="1"
++CUSTOMBUILDFLAGS=""
++if [ "${MAMEFORK}" == "bemani" ]
++then
++  CUSTOMBUILDFLAGS+=" IS_DDRMINI=1"
++  CUSTOMBUILDFLAGS+=" SOURCES=src/mame/konami/ksys573.cpp"
++  TOOLS_BUILD="0"
++fi
++
+ make \
+  REGENIE=1 \
+  CROSS_BUILD=1 \
+- TOOLS=1 \
++ ${CUSTOMBUILDFLAGS} \
++ TOOLS=${TOOLS_BUILD} \
+  NOWERROR=1 \
+  PLATFORM=${MAMEPLATFORM} \
+  CFLAGS+=" -I ${MLIB}/usr/include" \
+diff --git a/mame-cross-compile.sh b/mame-cross-compile.sh
+index 167cc82..965c2d3 100755
+--- a/mame-cross-compile.sh
++++ b/mame-cross-compile.sh
+@@ -78,6 +78,7 @@ do
+     f)
+       case ${OPTARG} in
+         mame) MAMEFORK=${OPTARG} ; GIT="https://github.com/mamedev/mame.git" ;;
++        bemani) MAMEFORK=${OPTARG} ; GIT="https://github.com/987123879113/mame.git" ;;
+         groovymame) MAMEFORK=${OPTARG} ; GIT="https://github.com/antonioginer/GroovyMAME.git" ;;
+         *) echo "Invalid fork: -f ${OPTARG}" ; help_short ; exit 1 ;;
+       esac
