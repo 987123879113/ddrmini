@@ -46,3 +46,10 @@ cp build/output/mame_*_arm64.7z /mame_build
 
 ## Notes
 This method requires patching `mame_raspberrypi_cross_compile` to support the Bemani fork of MAME which contains the modifications required to build for the DDR Classic Mini. If you wish to build any other branch of MAME then you must apply the same patches as I applied [here](https://github.com/987123879113/mame/commit/9a2b312caa3df990faa49bb7a8afd16cfd814a6b.patch).
+
+## Audio
+The following commands must be executed before any audio will play (use a bash script as DDRmenu and launch MAME from there after executing the commands):
+```
+amixer set SPK on
+amixer set HPOUT on
+```
