@@ -60,3 +60,11 @@ sh monitor_audio.sh &
 # Replace with your command here
 ./mame ddrmax
 ```
+
+## DDR Cabinet Lights
+
+Copy `plugins/ksys573_ddr_lights_ddrmini` to MAME's `plugins` folder.
+
+Add the line `ksys573_ddr_lights_ddrmini 1` to `plugin.ini` in the MAME folder to enable the script automatically on start.
+
+**NOTE**: This script is set to autostart which may not work with non-DDR games. You can disable autostart by modifying `plugins/ksys573_ddr_lights_ddrmini/plugin.json` and set `start` to `false`.

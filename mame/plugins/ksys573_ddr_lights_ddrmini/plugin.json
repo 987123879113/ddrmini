@@ -1,0 +1,10 @@
+{
+	"plugin": {
+		"name": "ksys573_ddr_lights_ddrmini",
+		"description": "Konami System 573 Dance Dance Revolution Lights for DDR Classic Mini plugin",
+		"version": "0.0.1",
+		"author": "windyfairy/987123879113",
+		"type": "plugin",
+		"start": "true"
+	}
+}
