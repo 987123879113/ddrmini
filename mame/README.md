@@ -48,8 +48,15 @@ cp build/output/mame_*_arm64.7z /mame_build
 This method requires patching `mame_raspberrypi_cross_compile` to support the Bemani fork of MAME which contains the modifications required to build for the DDR Classic Mini. If you wish to build any other branch of MAME then you must apply the same patches as I applied [here](https://github.com/987123879113/mame/commit/9a2b312caa3df990faa49bb7a8afd16cfd814a6b.patch).
 
 ## Audio
-The following commands must be executed before any audio will play (use a bash script as DDRmenu and launch MAME from there after executing the commands):
+The [provided script](scripts/monitor_audio.sh) can be started before MAME to make the volume knob and headphone jack work again.
+
+You can start it like this:
 ```
-amixer set SPK on
-amixer set HPOUT on
+#/bin/sh
+
+# Start audio monitoring
+sh monitor_audio.sh &
+
+# Replace with your command here
+./mame ddrmax
 ```
